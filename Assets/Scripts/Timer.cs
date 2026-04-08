@@ -1,5 +1,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using UnityEngine;
+
+[System.Serializable]
+public class StepsData
+{
+    public long[] steps;
+}
 
 public static class Timer
 {
@@ -26,9 +33,6 @@ public static class Timer
         return steps[index] * 0.001f;
     }
 
-    /// <summary>
-    /// Reset the timer and remove any steps.
-    /// </summary>
     public static void Reset()
     {
         stopwatch.Reset();
@@ -52,13 +56,53 @@ public static class Timer
 
     public static void Save()
     {
-        // TODO : save our time steps (line 7 of this script) inside a file.
+        string filePath = Application.persistentDataPath + "/score.json";
+
+        // Vérifier s'il existe déjà un fichier
+        if (System.IO.File.Exists(filePath))
+        {
+            // Lire l'ancien score
+            string oldJson = System.IO.File.ReadAllText(filePath);
+            StepsData oldData = JsonUtility.FromJson<StepsData>(oldJson);
+
+            long oldTime = oldData.steps[oldData.steps.Length - 1];
+            long newTime = stopwatch.ElapsedMilliseconds;
+
+            // Si le nouveau temps n'est pas meilleur, ne pas sauvegarder
+            if (newTime > oldTime)
+            {
+                UnityEngine.Debug.Log("Pas assez rapide. Ancien: " + oldTime + "ms, Nouveau: " + newTime + "ms");
+                return;
+            }
+        }
+
+        // Sauvegarder le nouveau score
+        StepsData data = new StepsData();
+        data.steps = steps.ToArray();
+
+        string json = JsonUtility.ToJson(data);
+        System.IO.File.WriteAllText(filePath, json);
+
+        UnityEngine.Debug.Log("Score sauvegarde!");
     }
 
     public static void Load()
     {
-        // TODO : load our time steps from a file (if we have any)
-        // and store them inside our steps variable (line 7 of this script)
-        // to show them to the player before starting a race.
+        string filePath = Application.persistentDataPath + "/score.json";
+
+        if (!System.IO.File.Exists(filePath))
+        {
+            UnityEngine.Debug.Log("Aucun fichier trouve");
+            return;
+        }
+
+        string json = System.IO.File.ReadAllText(filePath);
+        StepsData data = JsonUtility.FromJson<StepsData>(json);
+
+        steps = new List<long>(data.steps);
+
+        UnityEngine.Debug.Log("Score charge!");
     }
 }
+
+ 
